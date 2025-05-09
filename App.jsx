@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
   View,
   Text,
@@ -9,9 +9,16 @@ import {
   Platform,
   PermissionsAndroid,
   ActivityIndicator,
+  StyleSheet,
 } from 'react-native';
 import BleManager from 'react-native-ble-manager';
-import {StyleSheet} from 'react-native';
+
+import * as echarts from 'echarts/core';
+import {LineChart} from 'echarts/charts';
+import {GridComponent} from 'echarts/components';
+import {SVGRenderer, SvgChart} from '@wuba/react-native-echarts';
+
+echarts.use([SkiaRenderer, LineChart, GridComponent]);
 
 const bleManagerEmitter = new NativeEventEmitter(NativeModules.BleManager);
 
@@ -21,6 +28,47 @@ const App = () => {
   const [connectedDeviceId, setConnectedDeviceId] = useState(null);
   const [statusMessage, setStatusMessage] = useState('');
   const [showRadar, setShowRadar] = useState(false);
+
+  const svgRef = useRef(null);
+
+  const option = {
+    radar: {
+      indicator: [
+        {name: 'Sales', max: 6500},
+        {name: 'Administration', max: 16000},
+        {name: 'Information Tech', max: 30000},
+        {name: 'Customer Support', max: 38000},
+        {name: 'Development', max: 52000},
+        {name: 'Marketing', max: 25000},
+      ],
+    },
+    series: [
+      {
+        type: 'radar',
+        data: [
+          {
+            value: [4300, 10000, 28000, 35000, 50000, 19000],
+            name: 'Allocated budget',
+          },
+          {
+            value: [5000, 14000, 28000, 31000, 42000, 21000],
+            name: 'Actual spending',
+          },
+        ],
+      },
+    ],
+  };
+
+  const chart = echarts.init(svgRef.current, 'light', {
+    renderer: 'svg',
+    width: 400,
+    height: 400,
+  });
+  chart.setOption(option);
+
+  useEffect(() => {
+    return () => chart?.dispose();
+  }, []);
 
   const checkPermissions = async () => {
     if (Platform.OS === 'android' && Platform.Version >= 23) {
@@ -235,7 +283,10 @@ const App = () => {
         <Text style={styles.status}>{statusMessage}</Text>
       ) : null}
       {showRadar ? (
-        <Text style={styles.status}>Radar Graph Placeholder</Text>
+        <>
+          <Text style={styles.status}>Radar Graph Placeholder</Text>
+          <SvgChart ref={svgRef} />
+        </>
       ) : (
         <FlatList
           style={styles.list}
